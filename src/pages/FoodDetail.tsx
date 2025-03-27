@@ -1,538 +1,504 @@
-
 import React, { useState, useEffect } from 'react';
-import { Layout } from '@/components/Layout';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '@/lib/firebase';
-import { FoodListing, FoodCollection } from '@/types';
-import { useAuth } from '@/context/AuthContext';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { 
-  Clock, 
-  MapPin, 
-  User, 
-  UtensilsCrossed, 
-  Leaf, 
-  AlertTriangle,
-  Check,
-  X,
-  Phone,
-  Share2,
+  Clock, MapPin, Info, UtensilsCrossed, Check, X, Timer, CalendarClock, AlertTriangle, 
+  Users, BadgeCheck, ChevronRight, CircleAlert
 } from 'lucide-react';
+import { calculateDistance, calculateETA } from '@/lib/maps';
+import { db } from '@/lib/firebase';
+import { FoodListing } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Layout } from '@/components/Layout';
 import { MapView } from '@/components/MapView';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
 
 const FoodDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [listing, setListing] = useState<FoodListing | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
-  const [claimNote, setClaimNote] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showContact, setShowContact] = useState(false);
+
+  // Fetch food listing details
+  const { 
+    data: listing, 
+    isLoading, 
+    error 
+  } = useQuery({
+    queryKey: ['foodListing', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Listing ID is required');
+      const data = await db.foodListings.getById(id);
+      if (!data) throw new Error('Listing not found');
+      return data;
+    },
+  });
+
+  // Get current user location
   useEffect(() => {
-    const fetchListing = async () => {
-      if (!id) return;
-      
-      setIsLoading(true);
-      
-      try {
-        const fetchedListing = await db.foodListings.getById(id);
-        
-        if (!fetchedListing) {
-          // Listing not found
-          toast({
-            title: 'Not found',
-            description: 'The food listing you are looking for does not exist.',
-            variant: 'destructive',
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
           });
-          navigate('/');
-          return;
+        },
+        (error) => {
+          console.error('Error getting location:', error);
         }
-        
-        setListing(fetchedListing);
-      } catch (error) {
-        console.error('Error fetching listing:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load food listing details.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      );
+    }
+  }, []);
+
+  // Calculate distance and ETA from user to food
+  const distance = userLocation && listing 
+    ? calculateDistance(userLocation, listing.location)
+    : null;
     
-    fetchListing();
-  }, [id, navigate, toast]);
+  const eta = userLocation && listing 
+    ? calculateETA(userLocation, listing.location)
+    : null;
+    
+  // Check if food is about to expire
+  const isAboutToExpire = listing 
+    ? (listing.expiryTime - Date.now()) < 2 * 60 * 60 * 1000 // less than 2 hours
+    : false;
+    
+  // Format preparation time
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
   
+  // Format expiry time
   const formatExpiryTime = (timestamp: number) => {
-    if (!timestamp) return 'Unknown';
+    const now = Date.now();
+    const diff = timestamp - now;
     
-    const expiry = new Date(timestamp);
-    const now = new Date();
-    
-    if (expiry < now) {
+    // If expired
+    if (diff <= 0) {
       return 'Expired';
     }
     
-    // Format as date and time if today, or just date if not today
-    const isToday = expiry.toDateString() === now.toDateString();
-    
-    if (isToday) {
-      return `Today at ${expiry.toLocaleTimeString(undefined, { 
-        hour: '2-digit', 
-        minute: '2-digit',
-      })}`;
+    // If less than 1 hour
+    if (diff < 60 * 60 * 1000) {
+      const minutes = Math.floor(diff / (60 * 1000));
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} left`;
     }
     
-    return expiry.toLocaleString(undefined, {
+    // If less than 24 hours
+    if (diff < 24 * 60 * 60 * 1000) {
+      const hours = Math.floor(diff / (60 * 60 * 1000));
+      return `${hours} hour${hours !== 1 ? 's' : ''} left`;
+    }
+    
+    // Otherwise show date and time
+    return new Date(timestamp).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
   };
   
-  const formatRelativeTime = (timestamp: number) => {
-    if (!timestamp) return 'Unknown';
-    
-    const expiry = new Date(timestamp);
-    const now = new Date();
-    
-    if (expiry < now) {
-      return 'Expired';
+  // Handle claim button
+  const handleClaim = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to claim this food",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
     }
     
-    const diffMs = expiry.getTime() - now.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m remaining`;
+    if (user.role !== 'ngo' && user.role !== 'volunteer') {
+      toast({
+        title: "Permission denied",
+        description: "Only NGOs and volunteers can claim food listings",
+        variant: "destructive",
+      });
+      return;
     }
-    
-    return `${diffMinutes}m remaining`;
-  };
-  
-  const handleClaimSubmit = async () => {
-    if (!listing || !user || user.role !== 'ngo') return;
-    
-    setIsSubmitting(true);
     
     try {
-      // Create a new collection record
-      const newCollection: Omit<FoodCollection, 'id' | 'createdAt'> = {
-        foodListingId: listing.id,
-        hotelId: listing.hotelId,
-        ngoId: user.id,
-        pickupTime: Date.now() + 60 * 60 * 1000, // 1 hour from now
-        status: 'scheduled',
-        notes: claimNote,
-      };
-      
-      const collection = await db.collections.create(newCollection);
-      
-      // Update the listing status
-      await db.foodListings.update(listing.id, {
-        status: 'assigned',
-        assignedTo: {
-          id: user.id,
-          name: user.name || 'Anonymous NGO',
-          role: 'ngo',
-        },
-      });
-      
-      // Update local state
-      setListing({
-        ...listing,
-        status: 'assigned',
-        assignedTo: {
-          id: user.id,
-          name: user.name || 'Anonymous NGO',
-          role: 'ngo',
-        },
-      });
-      
-      // Create notifications for both parties
-      await db.notifications.create({
-        userId: listing.hotelId,
-        title: 'Food Listing Claimed',
-        message: `Your food listing "${listing.foodName}" has been claimed by ${user.name || 'an NGO'}.`,
-        type: 'success',
-      });
-      
-      await db.notifications.create({
-        userId: user.id,
-        title: 'Food Claimed Successfully',
-        message: `You have successfully claimed "${listing.foodName}" from ${listing.hotelName}.`,
-        type: 'success',
-      });
-      
-      toast({
-        title: 'Food claimed successfully',
-        description: 'You have been assigned this food for collection.',
-      });
-      
-      setClaimDialogOpen(false);
+      // Update food listing status
+      if (listing) {
+        await db.foodListings.update(listing.id, {
+          status: 'assigned',
+          assignedTo: {
+            id: user.id,
+            name: user.name,
+            role: user.role,
+          },
+        });
+        
+        // Create a food collection record
+        await db.collections.create({
+          foodListingId: listing.id,
+          hotelId: listing.hotelId,
+          ngoId: user.role === 'ngo' ? user.id : '',
+          volunteerId: user.role === 'volunteer' ? user.id : undefined,
+          pickupTime: Date.now() + (60 * 60 * 1000), // Default to 1 hour from now
+          status: 'scheduled',
+        });
+        
+        // Create notifications
+        await db.notifications.create({
+          userId: listing.hotelId,
+          title: "Food Listing Claimed",
+          message: `Your food listing "${listing.foodName}" has been claimed by ${user.name}`,
+          type: "success",
+        });
+        
+        toast({
+          title: "Food claimed successfully",
+          description: "You can now coordinate pickup with the provider",
+        });
+        
+        // Refresh page data
+        navigate(0);
+      }
     } catch (error) {
-      console.error('Error claiming food:', error);
+      console.error("Error claiming food:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to claim this food. Please try again.',
-        variant: 'destructive',
+        title: "Failed to claim food",
+        description: "Please try again later",
+        variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
   
-  const canClaim = () => {
-    if (!user || !listing) return false;
-    
-    // Only NGOs can claim food
-    if (user.role !== 'ngo') return false;
-    
-    // Can only claim if status is available
-    if (listing.status !== 'available') return false;
-    
-    // Can't claim if expired
-    if (listing.expiryTime < Date.now()) return false;
-    
-    return true;
+  // Handle contact button click
+  const handleContactClick = () => {
+    setShowContact(true);
   };
   
-  const isExpired = listing && listing.expiryTime < Date.now();
-  const isExpiringSoon = listing && !isExpired && listing.expiryTime - Date.now() < 2 * 60 * 60 * 1000; // 2 hours
+  // Render error state
+  if (error) {
+    return (
+      <Layout>
+        <div className="content-container py-8">
+          <Alert variant="destructive" className="mb-6">
+            <CircleAlert className="h-4 w-4" />
+            <AlertTitle>Error loading food listing</AlertTitle>
+            <AlertDescription>
+              The food listing could not be found or has been removed.
+              Please check the URL or return to the home page.
+            </AlertDescription>
+          </Alert>
+          
+          <Button onClick={() => navigate('/')}>
+            Return to Home
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Render loading state
+  if (isLoading || !listing) {
+    return (
+      <Layout>
+        <div className="content-container py-8">
+          <Skeleton className="w-full h-8 mb-2" />
+          <Skeleton className="w-3/4 h-4 mb-8" />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <Skeleton className="w-full h-64 mb-6" />
+              <Skeleton className="w-full h-32" />
+            </div>
+            
+            <div>
+              <Skeleton className="w-full h-64 mb-6" />
+              <Skeleton className="w-full h-32" />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
   
   return (
     <Layout>
-      <div className="py-8 px-4 sm:px-0">
-        <div className="content-container max-w-4xl mx-auto">
-          {isLoading ? (
-            <div className="space-y-4 animate-pulse">
-              <div className="h-10 w-3/4 bg-muted rounded-lg"></div>
-              <div className="h-4 w-1/2 bg-muted rounded-lg"></div>
-              <div className="h-64 bg-muted rounded-lg mt-6"></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <div className="h-32 bg-muted rounded-lg"></div>
-                <div className="h-32 bg-muted rounded-lg"></div>
-                <div className="h-32 bg-muted rounded-lg"></div>
-              </div>
+      <div className="content-container py-8">
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            className="mb-4" 
+            onClick={() => navigate('/')}
+          >
+            <ChevronRight className="h-4 w-4 mr-2 rotate-180" />
+            Back to listings
+          </Button>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">{listing.foodName}</h1>
+              <p className="text-muted-foreground">Listed by {listing.hotelName}</p>
             </div>
-          ) : listing ? (
-            <div className="animate-fade-in">
-              {/* Navigation and status */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate(-1)}
-                  className="w-fit"
-                >
-                  ← Back
-                </Button>
-                
-                <Badge 
-                  className={`${
-                    listing.status === 'available' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                    listing.status === 'assigned' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                    listing.status === 'collected' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                    listing.status === 'delivered' ? 'bg-primary/10 text-primary border-primary/20' :
-                    listing.status === 'expired' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                    'bg-gray-500/10 text-gray-500 border-gray-500/20'
-                  } text-xs px-3 py-1`}
-                  variant="outline"
-                >
-                  {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
+            
+            <div className="flex flex-col sm:flex-row gap-2">
+              {listing.status === 'available' ? (
+                <Badge className="px-3 py-1 text-xs bg-green-500 hover:bg-green-600">Available</Badge>
+              ) : listing.status === 'assigned' ? (
+                <Badge variant="outline" className="px-3 py-1 text-xs">Assigned</Badge>
+              ) : (
+                <Badge variant="outline" className="px-3 py-1 text-xs">{listing.status}</Badge>
+              )}
+              
+              {isAboutToExpire && (
+                <Badge variant="default" className="px-3 py-1 text-xs bg-orange-500 hover:bg-orange-600">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Expiring Soon
                 </Badge>
-              </div>
-              
-              {/* Warning for expired listing */}
-              {isExpired && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Expired Listing</AlertTitle>
-                  <AlertDescription>
-                    This food listing has expired and is no longer available for collection.
-                  </AlertDescription>
-                </Alert>
               )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Food Details</CardTitle>
+                <CardDescription>
+                  Information about the available food
+                </CardDescription>
+              </CardHeader>
               
-              {/* Warning for expiring soon */}
-              {isExpiringSoon && !isExpired && (
-                <Alert variant="warning" className="mb-6 border-amber-500/50 text-amber-600 bg-amber-500/10">
-                  <Clock className="h-4 w-4" />
-                  <AlertTitle>Expiring Soon</AlertTitle>
-                  <AlertDescription>
-                    This food listing will expire soon. Please claim and collect it as soon as possible.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {/* Food title and description */}
-              <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-2">{listing.foodName}</h1>
-                <div className="flex items-center text-muted-foreground mb-4">
-                  <User className="h-4 w-4 mr-1" />
-                  <span>{listing.hotelName}</span>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Description</h3>
+                  <p className="text-muted-foreground">{listing.description}</p>
                 </div>
-                <p className="text-foreground/90">{listing.description}</p>
-              </div>
-              
-              {/* Food info cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <Clock className="h-4 w-4 mr-2" />
-                      Expiry Time
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`font-medium ${
-                      isExpired ? 'text-destructive' : 
-                      isExpiringSoon ? 'text-amber-500' : ''
-                    }`}>
-                      {formatExpiryTime(listing.expiryTime)}
-                    </div>
-                    {!isExpired && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {formatRelativeTime(listing.expiryTime)}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
                 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Location
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-medium">
-                      Koparkhairne, Navi Mumbai
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {listing.location.address}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center">
-                      <UtensilsCrossed className="h-4 w-4 mr-2" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center">
+                      <UtensilsCrossed className="h-4 w-4 mr-2 text-muted-foreground" />
                       Quantity
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-medium">
+                    </h3>
+                    <p className="text-xl font-medium">
                       {listing.quantity} {listing.quantityUnit}
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      FSSAI: {listing.fssaiNumber}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              {/* Map */}
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Location</h2>
-                <MapView 
-                  listings={[listing]}
-                  currentLocation={listing.location}
-                  zoom={15}
-                />
-              </div>
-              
-              {/* Dietary Information */}
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Dietary Information</h2>
-                <div className="flex flex-wrap gap-2">
-                  {listing.dietaryInfo.isVegetarian ? (
-                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                      <Leaf className="h-3 w-3 mr-1" />
-                      Vegetarian
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
-                      <UtensilsCrossed className="h-3 w-3 mr-1" />
-                      Non-Vegetarian
-                    </Badge>
-                  )}
+                    </p>
+                  </div>
                   
-                  {listing.dietaryInfo.isVegan && (
-                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                      Vegan
-                    </Badge>
-                  )}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Preparation Time
+                    </h3>
+                    <p>{formatTime(listing.preparationTime)}</p>
+                  </div>
                   
-                  {listing.dietaryInfo.containsNuts && (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                      Contains Nuts
-                    </Badge>
-                  )}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center">
+                      <CalendarClock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      Expiry Time
+                    </h3>
+                    <p className={isAboutToExpire ? "text-orange-500 font-medium" : ""}>
+                      {formatExpiryTime(listing.expiryTime)}
+                    </p>
+                  </div>
                   
-                  {listing.dietaryInfo.containsGluten && (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                      Contains Gluten
-                    </Badge>
-                  )}
-                  
-                  {listing.dietaryInfo.containsDairy && (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">
-                      Contains Dairy
-                    </Badge>
-                  )}
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center">
+                      <BadgeCheck className="h-4 w-4 mr-2 text-muted-foreground" />
+                      FSSAI Number
+                    </h3>
+                    <p>{listing.fssaiNumber}</p>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Contact Information (if assigned) */}
-              {listing.status === 'assigned' && listing.assignedTo && (
-                <Card className="mb-8">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Assigned To</CardTitle>
-                    <CardDescription>This food has been claimed and is awaiting collection</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{listing.assignedTo.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {listing.assignedTo.role === 'ngo' ? 'NGO/Charity' : 'Volunteer'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 flex flex-col sm:flex-row gap-3">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Phone className="h-4 w-4" />
-                        Contact
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Share2 className="h-4 w-4" />
-                        Share Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {canClaim() && (
-                  <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="sm:flex-1 md:flex-none md:min-w-[180px]">
-                        Claim Food
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Claim Food Listing</DialogTitle>
-                        <DialogDescription>
-                          You are about to claim this food for your organization. 
-                          Please confirm your intention to collect it.
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      <div className="py-4">
-                        <div className="flex items-center gap-3 mb-4 p-3 bg-muted rounded-md">
-                          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                            <UtensilsCrossed className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{listing.foodName}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {listing.quantity} {listing.quantityUnit} • {formatRelativeTime(listing.expiryTime)}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <Separator className="my-4" />
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="claimNote">Add a note (optional)</Label>
-                          <Textarea
-                            id="claimNote"
-                            placeholder="Add any special instructions or notes for the donor"
-                            value={claimNote}
-                            onChange={(e) => setClaimNote(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setClaimDialogOpen(false)}
-                          disabled={isSubmitting}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Cancel
-                        </Button>
-                        <Button 
-                          onClick={handleClaimSubmit}
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                            <div className="flex items-center space-x-2">
-                              <div className="loading-dot"></div>
-                              <div className="loading-dot"></div>
-                              <div className="loading-dot"></div>
-                            </div>
-                          ) : (
-                            <>
-                              <Check className="h-4 w-4 mr-2" />
-                              Confirm Claim
-                            </>
-                          )}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                )}
                 
-                <Button 
-                  variant="outline"
-                  className="sm:flex-1 md:flex-none md:min-w-[180px]"
-                  onClick={() => navigate(-1)}
-                >
-                  Go Back
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <h2 className="text-xl font-semibold">Food listing not found</h2>
-              <p className="text-muted-foreground mt-2">
-                The food listing you are looking for may have been removed or does not exist.
-              </p>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/')}
-                className="mt-6"
-              >
-                Go to Home
-              </Button>
-            </div>
-          )}
+                <Separator />
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Dietary Information</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {listing.dietaryInfo.isVegetarian && (
+                      <Badge variant="outline" className="bg-green-50">Vegetarian</Badge>
+                    )}
+                    {listing.dietaryInfo.isVegan && (
+                      <Badge variant="outline" className="bg-green-50">Vegan</Badge>
+                    )}
+                    {listing.dietaryInfo.containsNuts && (
+                      <Badge variant="outline" className="bg-yellow-50">Contains Nuts</Badge>
+                    )}
+                    {listing.dietaryInfo.containsGluten && (
+                      <Badge variant="outline" className="bg-yellow-50">Contains Gluten</Badge>
+                    )}
+                    {listing.dietaryInfo.containsDairy && (
+                      <Badge variant="outline" className="bg-yellow-50">Contains Dairy</Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Location</CardTitle>
+                <CardDescription>
+                  Where to pick up the food
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="mb-4">
+                  <Label className="text-sm font-medium mb-2 flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Address
+                  </Label>
+                  <p className="text-muted-foreground">{listing.location.address}</p>
+                </div>
+                
+                <div className="aspect-video rounded-md overflow-hidden border mb-4">
+                  <MapView 
+                    listings={[listing]}
+                    currentLocation={userLocation || undefined}
+                    showDirections={userLocation !== null}
+                    zoom={14}
+                  />
+                </div>
+                
+                {userLocation && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-1 block">Distance</Label>
+                      <p className="text-lg font-medium">
+                        {distance ? `${distance.toFixed(1)} km` : 'Calculating...'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-1 block">Estimated Travel Time</Label>
+                      <p className="text-lg font-medium">
+                        {eta ? `${eta} mins` : 'Calculating...'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Actions</CardTitle>
+                <CardDescription>
+                  Claim this food for your organization
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {listing.status === 'available' ? (
+                  <>
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Food Available</AlertTitle>
+                      <AlertDescription>
+                        This food is available for pickup and will expire in {formatExpiryTime(listing.expiryTime)}.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="flex flex-col gap-3">
+                      <Button 
+                        className="w-full" 
+                        onClick={handleClaim}
+                        disabled={!user || (user.role !== 'ngo' && user.role !== 'volunteer')}
+                      >
+                        Claim This Food
+                      </Button>
+                      
+                      {(!user || (user.role !== 'ngo' && user.role !== 'volunteer')) && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          Only NGOs and volunteers can claim food
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : listing.status === 'assigned' ? (
+                  <>
+                    <Alert>
+                      <Check className="h-4 w-4" />
+                      <AlertTitle>Food Assigned</AlertTitle>
+                      <AlertDescription>
+                        This food has been assigned to {listing.assignedTo?.name}.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    {listing.assignedTo?.id === user?.id && (
+                      <Button 
+                        className="w-full" 
+                        variant="outline"
+                        onClick={handleContactClick}
+                      >
+                        Contact Provider
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Alert>
+                    <X className="h-4 w-4" />
+                    <AlertTitle>Food Unavailable</AlertTitle>
+                    <AlertDescription>
+                      This food is no longer available.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Provider Information</CardTitle>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback>{listing.hotelName.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{listing.hotelName}</p>
+                    <p className="text-sm text-muted-foreground">Food Provider</p>
+                  </div>
+                </div>
+                
+                {(showContact || user?.role === 'admin') && (
+                  <div className="p-4 rounded-md bg-muted space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">Contact Information</p>
+                      <p className="text-sm text-muted-foreground">+91 9876543210</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground">contact@example.com</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </Layout>
