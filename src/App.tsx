@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProfileSetup from "./pages/ProfileSetup";
 import FoodDetail from "./pages/FoodDetail";
+import AvailableFood from "./pages/AvailableFood";
 import HotelDashboard from "./pages/hotel/Dashboard";
 import CreateListing from "./pages/hotel/CreateListing";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/food/:id" element={<FoodDetail />} />
+            <Route path="/food/available" element={<AvailableFood />} />
             
             {/* Protected routes */}
             <Route path="/profile/setup" element={<ProfileSetup />} />

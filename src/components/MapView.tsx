@@ -1,8 +1,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { FoodListing } from '@/types';
-import { mapConfig } from '@/lib/maps';
+import { mapConfig, loadGoogleMapsScript } from '@/lib/maps';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MapPin, Navigation } from 'lucide-react';
 
 interface MapViewProps {
   listings?: FoodListing[];
@@ -29,125 +31,205 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
 
-  // In a real implementation, we would use the Google Maps JavaScript API
-  // This is just a placeholder that shows a static map image
-  
+  // Load Google Maps script
   useEffect(() => {
-    // Simulate loading the map
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-    
-    return () => clearTimeout(timer);
+    const initMap = async () => {
+      try {
+        await loadGoogleMapsScript();
+        setMapLoaded(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error initializing Google Maps:', error);
+        setIsLoading(false);
+      }
+    };
+
+    initMap();
   }, []);
+
+  // Initialize map when script is loaded
+  useEffect(() => {
+    if (!mapLoaded || !mapContainerRef.current) return;
+
+    // Create the map instance
+    const center = currentLocation || mapConfig.defaultCenter;
+    mapRef.current = new google.maps.Map(mapContainerRef.current, {
+      center,
+      zoom,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      zoomControl: true,
+      styles: [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        }
+      ]
+    });
+
+    // Create info window
+    infoWindowRef.current = new google.maps.InfoWindow();
+
+    // Create directions renderer if showing directions
+    if (showDirections) {
+      directionsRendererRef.current = new google.maps.DirectionsRenderer({
+        map: mapRef.current,
+        suppressMarkers: false,
+        polylineOptions: {
+          strokeColor: '#3B82F6',
+          strokeOpacity: 0.8,
+          strokeWeight: 5
+        }
+      });
+    }
+
+    // Cleanup function
+    return () => {
+      // Clear markers
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+
+      // Clear info window
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+      }
+
+      // Clear directions
+      if (directionsRendererRef.current) {
+        directionsRendererRef.current.setMap(null);
+      }
+    };
+  }, [mapLoaded, currentLocation, zoom, showDirections]);
+
+  // Add markers for food listings
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || listings.length === 0) return;
+
+    // Clear previous markers
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+
+    // Add markers for each listing
+    listings.forEach(listing => {
+      if (!listing.location || !mapRef.current) return;
+
+      // Create marker
+      const marker = new google.maps.Marker({
+        position: { lat: listing.location.lat, lng: listing.location.lng },
+        map: mapRef.current,
+        title: listing.foodName,
+        animation: google.maps.Animation.DROP,
+        icon: {
+          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        }
+      });
+
+      // Add click listener
+      marker.addListener('click', () => {
+        if (onMarkerClick) {
+          onMarkerClick(listing);
+        } else if (infoWindowRef.current) {
+          // Show info window if no click handler provided
+          const content = `
+            <div style="padding: 8px; max-width: 200px;">
+              <h3 style="margin: 0 0 8px; font-weight: 600;">${listing.foodName}</h3>
+              <p style="margin: 0 0 8px;">${listing.hotelName}</p>
+              <p style="margin: 0; font-size: 12px; color: #666;">
+                ${listing.quantity} ${listing.quantityUnit}
+              </p>
+            </div>
+          `;
+          infoWindowRef.current.setContent(content);
+          infoWindowRef.current.open(mapRef.current, marker);
+        }
+      });
+
+      // Store marker reference
+      markersRef.current.push(marker);
+    });
+  }, [mapLoaded, listings, onMarkerClick]);
+
+  // Add marker for current location
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !currentLocation) return;
+
+    // Create marker for current location
+    const marker = new google.maps.Marker({
+      position: currentLocation,
+      map: mapRef.current,
+      title: 'Your Location',
+      animation: google.maps.Animation.BOUNCE,
+      icon: {
+        url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+      }
+    });
+
+    // Add to markers array for cleanup
+    markersRef.current.push(marker);
+
+    // Center map on current location
+    mapRef.current.setCenter(currentLocation);
+
+    return () => {
+      marker.setMap(null);
+    };
+  }, [mapLoaded, currentLocation]);
+
+  // Show directions between current location and destination
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !currentLocation || !destination || !showDirections || !directionsRendererRef.current) return;
+
+    const directionsService = new google.maps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin: currentLocation,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && directionsRendererRef.current) {
+          directionsRendererRef.current.setDirections(result);
+        } else {
+          console.error('Error getting directions:', status);
+        }
+      }
+    );
+  }, [mapLoaded, currentLocation, destination, showDirections]);
 
   return (
     <div className="rounded-lg overflow-hidden border border-border h-[300px] md:h-[400px] bg-accent relative">
       {isLoading ? (
         <div className="absolute inset-0 flex items-center justify-center bg-card">
           <div className="flex space-x-2">
-            <div className="loading-dot"></div>
-            <div className="loading-dot"></div>
-            <div className="loading-dot"></div>
+            <div className="w-3 h-3 rounded-full bg-primary animate-bounce"></div>
+            <div className="w-3 h-3 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-3 h-3 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.2s' }}></div>
           </div>
+        </div>
+      ) : !mapLoaded ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-card p-4">
+          <MapPin className="h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-center text-muted-foreground">
+            Unable to load Google Maps. Please check your internet connection and try again.
+          </p>
         </div>
       ) : (
-        <div ref={mapContainerRef} className="h-full w-full relative">
-          {/* Mock map display with data points */}
-          <div className="h-full w-full bg-[#f0f4f8] flex items-center justify-center relative">
-            <div className="absolute inset-0">
-              {/* Add grid lines to simulate a map */}
-              <div className="w-full h-full" style={{ 
-                backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)', 
-                backgroundSize: '20px 20px' 
-              }}>
-                
-                {/* Add some roads */}
-                <div className="absolute top-1/3 left-0 right-0 h-3 bg-gray-200"></div>
-                <div className="absolute top-2/3 left-0 right-0 h-2 bg-gray-200"></div>
-                <div className="absolute left-1/4 top-0 bottom-0 w-3 bg-gray-200"></div>
-                <div className="absolute left-3/4 top-0 bottom-0 w-2 bg-gray-200"></div>
-              </div>
-            </div>
-            
-            {/* Current location marker */}
-            {currentLocation && (
-              <div 
-                className="absolute w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 animate-pulse"
-                style={{ 
-                  left: '50%', 
-                  top: '50%', 
-                }}
-              ></div>
-            )}
-            
-            {/* Food listing markers */}
-            {listings.map((listing, index) => {
-              // Position markers somewhat randomly around the center
-              const offsetX = (((index * 29) % 100) - 50) / 100;
-              const offsetY = (((index * 37) % 100) - 50) / 100;
-              
-              return (
-                <div 
-                  key={listing.id}
-                  className="absolute cursor-pointer"
-                  style={{ 
-                    left: `calc(50% + ${offsetX * 200}px)`, 
-                    top: `calc(50% + ${offsetY * 200}px)`, 
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 10
-                  }}
-                  onClick={() => onMarkerClick?.(listing)}
-                >
-                  <div className="flex flex-col items-center">
-                    <div className="w-5 h-5 bg-primary rounded-full border-2 border-white shadow-md"></div>
-                    <div className="mt-1 bg-white px-2 py-1 rounded-md shadow-sm text-xs whitespace-nowrap">
-                      {listing.foodName}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Direction line */}
-            {showDirections && destination && (
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                <svg width="100%" height="100%">
-                  <path 
-                    d="M 50% 50% L 55% 45% C 60% 40%, 65% 40%, 70% 45% L 75% 50%" 
-                    stroke="rgba(59, 130, 246, 0.8)"
-                    strokeWidth="3"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray="5,5"
-                  />
-                </svg>
-              </div>
-            )}
-            
-            {/* Destination marker */}
-            {destination && (
-              <div 
-                className="absolute w-6 h-6 bg-green-500 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2"
-                style={{ 
-                  left: '75%', 
-                  top: '50%', 
-                }}
-              >
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                  <Badge className="bg-green-500">Destination</Badge>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Map attribution */}
-          <div className="absolute bottom-1 right-1 text-xs text-muted-foreground bg-white/80 px-1 rounded">
-            Map data © 2023
-          </div>
-        </div>
+        <div ref={mapContainerRef} className="h-full w-full"></div>
       )}
+      
+      {/* Map footer with attribution */}
+      <div className="absolute bottom-1 right-1 text-xs text-muted-foreground bg-white/80 px-1 rounded">
+        Map data © {new Date().getFullYear()} Google
+      </div>
     </div>
   );
 };
