@@ -26,8 +26,9 @@ const AvailableFood = () => {
   const { data: listings, isLoading, error } = useQuery({
     queryKey: ['availableFoodListings'],
     queryFn: async () => {
-      const data = await db.foodListings.getByStatus('available');
-      return data;
+      // Since getByStatus is not available, we'll use getAll and filter client-side
+      const allListings = await db.foodListings.getAll();
+      return allListings.filter(listing => listing.status === 'available');
     },
   });
 
@@ -68,6 +69,17 @@ const AvailableFood = () => {
     listing.hotelName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     listing.description.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  // Handle listing selection
+  const handleListingSelect = (listing: FoodListing) => {
+    setSelectedListing(listing);
+    setTimeout(() => {
+      const element = document.getElementById(`listing-${listing.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
 
   return (
     <Layout>
@@ -126,15 +138,7 @@ const AvailableFood = () => {
                   currentLocation={userLocation}
                   destination={selectedListing?.location}
                   showDirections={!!selectedListing}
-                  onMarkerClick={(listing) => {
-                    setSelectedListing(listing);
-                    setTimeout(() => {
-                      const element = document.getElementById(`listing-${listing.id}`);
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }, 100);
-                  }}
+                  onMarkerClick={handleListingSelect}
                 />
                 
                 {selectedListing && (
@@ -210,11 +214,11 @@ const AvailableFood = () => {
                       key={listing.id} 
                       id={`listing-${listing.id}`}
                       className={`transition-all ${selectedListing?.id === listing.id ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                      onClick={() => handleListingSelect(listing)}
                     >
                       <FoodCard 
                         listing={listing}
                         onClaim={() => navigate(`/food/${listing.id}`)}
-                        onClick={() => setSelectedListing(listing)}
                       />
                     </div>
                   ))}

@@ -164,7 +164,7 @@ export const mapConfig = {
 // Function to load Google Maps script
 export const loadGoogleMapsScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (window.google && window.google.maps) {
+    if (typeof window !== 'undefined' && window.google && window.google.maps) {
       console.log('Google Maps script already loaded');
       resolve();
       return;

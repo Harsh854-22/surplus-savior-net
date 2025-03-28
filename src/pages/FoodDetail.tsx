@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -29,6 +30,8 @@ const FoodDetail = () => {
   const { toast } = useToast();
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showContact, setShowContact] = useState(false);
+  const [distance, setDistance] = useState<number | null>(null);
+  const [eta, setEta] = useState<number | null>(null);
 
   // Fetch food listing details
   const { 
@@ -62,14 +65,24 @@ const FoodDetail = () => {
     }
   }, []);
 
-  // Calculate distance and ETA from user to food
-  const distance = userLocation && listing 
-    ? calculateDistance(userLocation, listing.location)
-    : null;
+  // Calculate distance and ETA from user to food when location changes
+  useEffect(() => {
+    const fetchDistanceAndEta = async () => {
+      if (!userLocation || !listing) return;
+      
+      try {
+        const distanceValue = await calculateDistance(userLocation, listing.location);
+        setDistance(distanceValue);
+        
+        const etaValue = await calculateETA(userLocation, listing.location);
+        setEta(etaValue);
+      } catch (error) {
+        console.error('Error calculating distance/ETA:', error);
+      }
+    };
     
-  const eta = userLocation && listing 
-    ? calculateETA(userLocation, listing.location)
-    : null;
+    fetchDistanceAndEta();
+  }, [userLocation, listing]);
     
   // Check if food is about to expire
   const isAboutToExpire = listing 

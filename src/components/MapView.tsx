@@ -55,7 +55,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Initialize map when script is loaded
   useEffect(() => {
-    if (!mapLoaded || !mapContainerRef.current) return;
+    if (!mapLoaded || !mapContainerRef.current || typeof google === 'undefined') return;
 
     // Create the map instance
     const center = currentLocation || mapConfig.defaultCenter;
@@ -111,7 +111,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Add markers for food listings
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || listings.length === 0) return;
+    if (!mapLoaded || !mapRef.current || listings.length === 0 || typeof google === 'undefined') return;
 
     // Clear previous markers
     markersRef.current.forEach(marker => marker.setMap(null));
@@ -159,7 +159,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Add marker for current location
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !currentLocation) return;
+    if (!mapLoaded || !mapRef.current || !currentLocation || typeof google === 'undefined') return;
 
     // Create marker for current location
     const marker = new google.maps.Marker({
@@ -185,7 +185,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Show directions between current location and destination
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !currentLocation || !destination || !showDirections || !directionsRendererRef.current) return;
+    if (!mapLoaded || !mapRef.current || !currentLocation || !destination || !showDirections || !directionsRendererRef.current || typeof google === 'undefined') return;
 
     const directionsService = new google.maps.DirectionsService();
 
