@@ -8,75 +8,31 @@ export interface User {
   role: UserRole;
   phone: string;
   address: string;
+  profileComplete: boolean;
+  createdAt: number;
   location: {
     lat: number;
     lng: number;
   };
-  profileComplete: boolean;
-  createdAt: number;
-}
-
-export interface HotelProfile extends User {
-  role: 'hotel';
-  fssaiNumber: string;
-  contactPerson: string;
-  businessType: 'hotel' | 'restaurant' | 'shop' | 'other';
-}
-
-export interface NGOProfile extends User {
-  role: 'ngo';
-  registrationNumber: string;
-  contactPerson: string;
-  beneficiaryCount: number;
-}
-
-export interface VolunteerProfile extends User {
-  role: 'volunteer';
-  availability: {
-    [day: string]: {
-      available: boolean;
-      timeSlots?: string[];
-    };
-  };
-  trainingCompleted: boolean;
-  activeArea: string;
-}
-
-export interface AdminProfile extends User {
-  role: 'admin';
-  permissions: string[];
 }
 
 export interface FoodListing {
   id: string;
   hotelId: string;
   hotelName: string;
-  foodName: string;
+  title: string;
   description: string;
   quantity: number;
-  quantityUnit: string;
-  preparationTime: number;
-  expiryTime: number;
-  fssaiNumber: string;
-  dietaryInfo: {
-    isVegetarian: boolean;
-    isVegan: boolean;
-    containsNuts: boolean;
-    containsGluten: boolean;
-    containsDairy: boolean;
-  };
+  servingSize: number;
+  expiry: string;
+  status: 'available' | 'assigned' | 'collected' | 'expired';
+  createdAt: number;
   location: {
-    address: string;
     lat: number;
     lng: number;
   };
-  status: 'available' | 'assigned' | 'collected' | 'delivered' | 'expired' | 'cancelled';
-  assignedTo?: {
-    id: string;
-    name: string;
-    role: 'ngo' | 'volunteer';
-  };
-  createdAt: number;
+  address: string;
+  imageUrl?: string;
 }
 
 export interface FoodCollection {
@@ -85,11 +41,10 @@ export interface FoodCollection {
   hotelId: string;
   ngoId: string;
   volunteerId?: string;
-  pickupTime: number;
-  deliveryTime?: number;
-  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'canceled';
+  pickupTime: string;
+  completedTime?: string;
   notes?: string;
-  createdAt: number;
 }
 
 export interface Notification {
@@ -97,7 +52,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
   createdAt: number;
+  type: 'info' | 'success' | 'warning' | 'error';
 }
