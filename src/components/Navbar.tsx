@@ -41,7 +41,7 @@ export const Navbar: React.FC = () => {
   };
   
   const getNavLinks = () => {
-    // Base links for all authenticated users
+    // Base links for all users
     const links = [
       { to: '/', label: 'Home', icon: <Home className="h-5 w-5" /> }
     ];
@@ -59,7 +59,7 @@ export const Navbar: React.FC = () => {
         case 'ngo':
           links.push(
             { to: '/ngo/dashboard', label: 'Dashboard', icon: <Home className="h-5 w-5" /> },
-            { to: '/ngo/available-food', label: 'Available Food', icon: <PlusCircle className="h-5 w-5" /> },
+            { to: '/food/available', label: 'Available Food', icon: <PlusCircle className="h-5 w-5" /> },
             { to: '/ngo/collections', label: 'My Collections', icon: <CheckCircle className="h-5 w-5" /> }
           );
           break;
