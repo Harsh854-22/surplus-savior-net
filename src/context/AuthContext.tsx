@@ -42,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             address: profile?.address || '',
             profileComplete: profile?.profile_complete || false,
             createdAt: session.user.created_at ? new Date(session.user.created_at).getTime() : Date.now(),
+            location: profile?.location || { lat: 0, lng: 0 } // Add the missing location property
           });
         } else {
           setUser(null);
