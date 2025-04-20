@@ -33,6 +33,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', session.user.id)
             .single();
 
+          // Extract location data safely - profile may not have location or it might be stored as a JSON string
+          let locationData = { lat: 0, lng: 0 };
+          
+          // Check if profile exists and has any location data
+          if (profile && profile.location) {
+            try {
+              // If location is stored as a string, parse it
+              if (typeof profile.location === 'string') {
+                const parsedLocation = JSON.parse(profile.location);
+                locationData = {
+                  lat: parsedLocation.lat || 0,
+                  lng: parsedLocation.lng || 0
+                };
+              } 
+              // If location is already an object
+              else if (typeof profile.location === 'object') {
+                locationData = {
+                  lat: profile.location.lat || 0,
+                  lng: profile.location.lng || 0
+                };
+              }
+            } catch (e) {
+              console.error("Error parsing location data:", e);
+            }
+          }
+
           // Make sure we're creating a valid User object with all required properties
           setUser({
             id: session.user.id,
@@ -43,11 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             address: profile?.address || '',
             profileComplete: profile?.profile_complete || false,
             createdAt: session.user.created_at ? new Date(session.user.created_at).getTime() : Date.now(),
-            // Create an empty location object if the profile doesn't have one
-            location: { 
-              lat: (profile && typeof profile.location === 'object' && profile.location ? profile.location.lat : 0) || 0,
-              lng: (profile && typeof profile.location === 'object' && profile.location ? profile.location.lng : 0) || 0
-            }
+            location: locationData
           });
         } else {
           setUser(null);
