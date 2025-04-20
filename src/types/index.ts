@@ -21,18 +21,36 @@ export interface FoodListing {
   hotelId: string;
   hotelName: string;
   title: string;
+  foodName: string; // Added back for backward compatibility
   description: string;
   quantity: number;
   servingSize: number;
+  quantityUnit: string; // Added back for backward compatibility
   expiry: string;
-  status: 'available' | 'assigned' | 'collected' | 'expired';
+  expiryTime: number; // Added back for backward compatibility
+  preparationTime?: number; // Added back for backward compatibility
+  fssaiNumber?: string; // Added back for backward compatibility
+  dietaryInfo?: { // Added back for backward compatibility
+    isVegetarian: boolean;
+    isVegan: boolean;
+    containsNuts: boolean;
+    containsGluten: boolean;
+    containsDairy: boolean;
+  };
+  status: 'available' | 'assigned' | 'collected' | 'expired' | 'delivered' | 'cancelled';
   createdAt: number;
   location: {
     lat: number;
     lng: number;
+    address?: string; // Added back for backward compatibility
   };
   address: string;
   imageUrl?: string;
+  assignedTo?: { // Added back for backward compatibility
+    id: string;
+    name: string;
+    role: 'ngo' | 'volunteer';
+  };
 }
 
 export interface FoodCollection {
@@ -41,10 +59,12 @@ export interface FoodCollection {
   hotelId: string;
   ngoId: string;
   volunteerId?: string;
-  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'canceled';
-  pickupTime: string;
+  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'canceled' | 'scheduled'; // Added 'scheduled'
+  pickupTime: string | number; // Allow both string and number
   completedTime?: string;
+  deliveryTime?: number; // Added back for backward compatibility
   notes?: string;
+  createdAt?: number; // Added back as optional
 }
 
 export interface Notification {
