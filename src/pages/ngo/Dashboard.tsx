@@ -27,13 +27,13 @@ const NGODashboard: React.FC = () => {
         // In a real app, we would filter by NGO ID
         const listings = await db.foodListings.getAll();
         const claimed = listings.filter(listing => 
-          listing.status === 'claimed' && listing.claimedBy === user?.id
+          listing.status === 'assigned' && listing.assignedTo?.id === user?.id
         );
         setClaimedListings(claimed);
         
         // Calculate statistics
         const completed = listings.filter(listing => 
-          listing.status === 'completed' && listing.claimedBy === user?.id
+          listing.status === 'collected' && listing.assignedTo?.id === user?.id
         );
         
         setStatistics({
@@ -172,8 +172,8 @@ const NGODashboard: React.FC = () => {
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle>{listing.name}</CardTitle>
-                        <CardDescription>From {listing.donorName}</CardDescription>
+                        <CardTitle>{listing.foodName}</CardTitle>
+                        <CardDescription>From {listing.hotelName}</CardDescription>
                       </div>
                       <Button 
                         size="sm" 
@@ -188,11 +188,11 @@ const NGODashboard: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{listing.locationName}</span>
+                        <span className="text-sm">{listing.location.address}</span>
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">Pickup by {new Date(listing.expiryDate).toLocaleDateString()}</span>
+                        <span className="text-sm">Pickup by {new Date(listing.expiryTime).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center">
                         <ShoppingBag className="h-4 w-4 mr-2 text-muted-foreground" />

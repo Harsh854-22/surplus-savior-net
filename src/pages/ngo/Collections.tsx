@@ -20,7 +20,7 @@ const NGOCollections: React.FC = () => {
         // In a real app, filter by NGO ID and completed status
         const listings = await db.foodListings.getAll();
         const completedCollections = listings.filter(
-          listing => listing.status === 'completed' && listing.claimedBy === user?.id
+          listing => listing.status === 'collected' && listing.assignedTo?.id === user?.id
         );
         setCollections(completedCollections);
       } catch (error) {
@@ -33,8 +33,8 @@ const NGOCollections: React.FC = () => {
     fetchCollections();
   }, [user?.id]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -84,18 +84,18 @@ const NGOCollections: React.FC = () => {
           {collections.map(collection => (
             <Card key={collection.id}>
               <CardHeader>
-                <CardTitle>{collection.name}</CardTitle>
-                <CardDescription>From {collection.donorName}</CardDescription>
+                <CardTitle>{collection.foodName}</CardTitle>
+                <CardDescription>From {collection.hotelName}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 mb-4">
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{collection.locationName}</span>
+                    <span>{collection.location.address}</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>Collected on {formatDate(collection.collectedDate || collection.expiryDate)}</span>
+                    <span>Collected on {formatDate(collection.expiryTime)}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="h-4 w-4 mr-2 text-muted-foreground" />

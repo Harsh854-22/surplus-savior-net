@@ -24,7 +24,7 @@ const HotelListings: React.FC = () => {
         
         // In a real app, we would filter by userId
         const allListings = await db.foodListings.getAll();
-        const userListings = allListings.filter(listing => listing.donorId === user.id);
+        const userListings = allListings.filter(listing => listing.hotelId === user.id);
         setListings(userListings);
       } catch (error) {
         console.error('Error fetching listings:', error);
@@ -45,7 +45,7 @@ const HotelListings: React.FC = () => {
     switch (status) {
       case 'available':
         return <Badge className="bg-green-500">Available</Badge>;
-      case 'claimed':
+      case 'assigned':
         return <Badge className="bg-blue-500">Claimed</Badge>;
       case 'completed':
         return <Badge className="bg-gray-500">Completed</Badge>;
@@ -56,7 +56,7 @@ const HotelListings: React.FC = () => {
     }
   };
 
-  const formatDate = (date: string) => {
+  const formatDate = (date: number) => {
     return new Date(date).toLocaleString();
   };
 
@@ -108,11 +108,11 @@ const HotelListings: React.FC = () => {
             <Card key={listing.id} className="overflow-hidden">
               <div 
                 className="h-48 bg-cover bg-center" 
-                style={{ backgroundImage: `url(${listing.imageUrl || '/placeholder.svg'})` }}
+                style={{ backgroundImage: `url(/placeholder.svg)` }}
               ></div>
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <CardTitle>{listing.name}</CardTitle>
+                  <CardTitle>{listing.foodName}</CardTitle>
                   {getStatusBadge(listing.status)}
                 </div>
               </CardHeader>
@@ -121,11 +121,11 @@ const HotelListings: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center text-sm">
                     <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>{listing.locationName}</span>
+                    <span>{listing.location.address}</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>Expires: {formatDate(listing.expiryDate)}</span>
+                    <span>Expires: {formatDate(listing.expiryTime)}</span>
                   </div>
                 </div>
               </CardContent>
