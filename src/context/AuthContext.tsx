@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: profile?.phone || '',
             address: profile?.address || '',
             profileComplete: profile?.profile_complete || false,
-            createdAt: session.user.created_at!,
+            createdAt: session.user.created_at ? new Date(session.user.created_at).getTime() : Date.now(),
           });
         } else {
           setUser(null);
