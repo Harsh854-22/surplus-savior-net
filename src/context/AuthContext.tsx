@@ -33,30 +33,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', session.user.id)
             .single();
 
-          // Extract location data safely - profile may not have location or it might be stored as a JSON string
+          if (!profile) {
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
+          // Initialize location data with default values
           let locationData = { lat: 0, lng: 0 };
           
-          // Check if profile exists and has any location data
-          if (profile && profile.location) {
-            try {
-              // If location is stored as a string, parse it
-              if (typeof profile.location === 'string') {
-                const parsedLocation = JSON.parse(profile.location);
-                locationData = {
-                  lat: parsedLocation.lat || 0,
-                  lng: parsedLocation.lng || 0
-                };
-              } 
-              // If location is already an object
-              else if (typeof profile.location === 'object') {
-                locationData = {
-                  lat: profile.location.lat || 0,
-                  lng: profile.location.lng || 0
-                };
+          // Fetch role-specific profile which contains location data
+          try {
+            if (profile.role === 'hotel') {
+              const { data: hotelProfile } = await supabase
+                .from('hotel_profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+                
+              if (hotelProfile && hotelProfile.location) {
+                locationData = extractLocationData(hotelProfile.location);
               }
-            } catch (e) {
-              console.error("Error parsing location data:", e);
+            } 
+            else if (profile.role === 'ngo') {
+              const { data: ngoProfile } = await supabase
+                .from('ngo_profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+                
+              if (ngoProfile && ngoProfile.location) {
+                locationData = extractLocationData(ngoProfile.location);
+              }
             }
+            else if (profile.role === 'volunteer') {
+              const { data: volunteerProfile } = await supabase
+                .from('volunteer_profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+                
+              if (volunteerProfile && volunteerProfile.location) {
+                locationData = extractLocationData(volunteerProfile.location);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching role-specific profile:", error);
           }
 
           // Make sure we're creating a valid User object with all required properties
@@ -77,6 +99,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     );
+
+    // Helper function to extract location data safely
+    const extractLocationData = (locationData: any): { lat: number, lng: number } => {
+      try {
+        // If location is stored as a string, parse it
+        if (typeof locationData === 'string') {
+          const parsedLocation = JSON.parse(locationData);
+          return {
+            lat: parsedLocation.lat || 0,
+            lng: parsedLocation.lng || 0
+          };
+        } 
+        // If location is already an object
+        else if (typeof locationData === 'object' && locationData) {
+          return {
+            lat: locationData.lat || 0,
+            lng: locationData.lng || 0
+          };
+        }
+      } catch (e) {
+        console.error("Error parsing location data:", e);
+      }
+      
+      // Default fallback
+      return { lat: 0, lng: 0 };
+    };
 
     // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
