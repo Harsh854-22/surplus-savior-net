@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
@@ -81,10 +80,13 @@ const CreateListing = () => {
       const newListing: Omit<FoodListing, 'id' | 'createdAt'> = {
         hotelId: user.id,
         hotelName: user.name || 'Anonymous Hotel',
+        title: formData.foodName, // Setting title same as foodName
         foodName: formData.foodName,
         description: formData.description,
         quantity: parseInt(formData.quantity),
+        servingSize: parseInt(formData.quantity), // Setting servingSize same as quantity
         quantityUnit: formData.quantityUnit,
+        expiry: new Date(expiryTime).toISOString(), // Adding ISO string for expiry
         preparationTime: now,
         expiryTime,
         fssaiNumber: (user as any).fssaiNumber || 'FSSAI-PENDING',
@@ -94,6 +96,7 @@ const CreateListing = () => {
           lat: user.location.lat,
           lng: user.location.lng,
         },
+        address: user.address, // Adding address as separate field
         status: 'available',
       };
       

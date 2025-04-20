@@ -275,10 +275,13 @@ const mockFoodListings: FoodListing[] = [
     id: 'listing1',
     hotelId: 'hotel1',
     hotelName: 'Grand Plaza Hotel',
+    title: 'Mixed Vegetable Curry', // Added title
     foodName: 'Mixed Vegetable Curry',
     description: 'Freshly prepared vegetable curry with rice and naan bread. Serves approximately 20 people.',
     quantity: 20,
+    servingSize: 20, // Added servingSize
     quantityUnit: 'servings',
+    expiry: '2025-04-20T18:00:00Z', // Added expiry
     preparationTime: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
     expiryTime: Date.now() + 5 * 60 * 60 * 1000, // 5 hours from now
     fssaiNumber: 'FSSAI-12345-67890',
@@ -294,6 +297,7 @@ const mockFoodListings: FoodListing[] = [
       lat: 19.1036,
       lng: 73.0148,
     },
+    address: '123 Main Street, Koparkhairne, Navi Mumbai', // Added address as separate field
     status: 'available',
     createdAt: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago
   },
@@ -301,10 +305,13 @@ const mockFoodListings: FoodListing[] = [
     id: 'listing2',
     hotelId: 'hotel1',
     hotelName: 'Grand Plaza Hotel',
+    title: 'Chicken Biryani', // Added title
     foodName: 'Chicken Biryani',
     description: 'Aromatic rice dish with chicken. Approximately 15 servings available.',
     quantity: 15,
+    servingSize: 15, // Added servingSize
     quantityUnit: 'servings',
+    expiry: '2025-04-20T17:00:00Z', // Added expiry
     preparationTime: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago
     expiryTime: Date.now() + 4 * 60 * 60 * 1000, // 4 hours from now
     fssaiNumber: 'FSSAI-12345-67890',
@@ -320,6 +327,7 @@ const mockFoodListings: FoodListing[] = [
       lat: 19.1036,
       lng: 73.0148,
     },
+    address: '123 Main Street, Koparkhairne, Navi Mumbai', // Added address as separate field
     status: 'assigned',
     assignedTo: {
       id: 'ngo1',
