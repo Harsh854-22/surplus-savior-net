@@ -1,9 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
-import { auth } from '@/lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -23,51 +23,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up authentication state listener
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          // Fetch user profile data
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            name: profile?.name || '',
+            role: profile?.role as User['role'],
+            phone: profile?.phone || '',
+            address: profile?.address || '',
+            profileComplete: profile?.profile_complete || false,
+            createdAt: session.user.created_at!,
+          });
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setLoading(false);
+      }
     });
 
-    return unsubscribe;
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Validate credentials against mock database
-      const mockUsers = [
-        { email: 'hotel@example.com', password: 'password123', role: 'hotel' },
-        { email: 'ngo@example.com', password: 'password123', role: 'ngo' },
-        { email: 'volunteer@example.com', password: 'password123', role: 'volunteer' },
-        { email: 'admin@example.com', password: 'password123', role: 'admin' },
-      ];
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Check if email and password match any mock user
-      const mockUser = mockUsers.find(u => u.email === email && u.password === password);
-      
-      if (!mockUser) {
-        throw new Error('Invalid email or password');
-      }
+      if (error) throw error;
 
-      // If valid, proceed with sign in
-      const user = await auth.signIn(email, password);
-      setUser(user);
       toast({
         title: "Sign in successful",
-        description: `Welcome back, ${user.name || email}!`,
+        description: "Welcome back!",
       });
       
-      // Redirect based on role and profile completion
-      if (!user.profileComplete) {
-        navigate('/profile/setup');
-      } else {
-        navigate(`/${user.role}/dashboard`);
-      }
-    } catch (error) {
+      // Navigation will be handled by the auth state change listener
+    } catch (error: any) {
       toast({
         title: "Sign in failed",
-        description: "Invalid email or password. Please try again.",
+        description: error.message,
         variant: "destructive",
       });
       console.error("Sign in error:", error);
@@ -79,17 +93,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, role: User['role']) => {
     setLoading(true);
     try {
-      const user = await auth.signUp(email, password, role);
-      setUser(user);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: role,
+          },
+        },
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Sign up successful",
         description: "Welcome! Let's set up your profile.",
       });
       navigate('/profile/setup');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign up failed",
-        description: "Could not create your account. Please try again.",
+        description: error.message,
         variant: "destructive",
       });
       console.error("Sign up error:", error);
@@ -100,17 +124,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
       setUser(null);
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign out failed",
-        description: "Could not sign you out. Please try again.",
+        description: error.message,
         variant: "destructive",
       });
       console.error("Sign out error:", error);
@@ -122,17 +148,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setLoading(true);
     try {
-      // Update the user profile in the database
-      const updatedUser = await auth.signIn(user.email, "password"); // Mock update
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: updates.name,
+          phone: updates.phone,
+          address: updates.address,
+          profile_complete: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
       setUser({ ...user, ...updates });
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
       });
-    } catch (error) {
+
+      // Redirect based on role
+      navigate(`/${user.role}/dashboard`);
+    } catch (error: any) {
       toast({
         title: "Update failed",
-        description: "Could not update your profile. Please try again.",
+        description: error.message,
         variant: "destructive",
       });
       console.error("Profile update error:", error);

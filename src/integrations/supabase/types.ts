@@ -9,7 +9,135 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      hotel_profiles: {
+        Row: {
+          business_type: string | null
+          contact_person: string | null
+          fssai_number: string | null
+          id: string
+          location: Json | null
+        }
+        Insert: {
+          business_type?: string | null
+          contact_person?: string | null
+          fssai_number?: string | null
+          id: string
+          location?: Json | null
+        }
+        Update: {
+          business_type?: string | null
+          contact_person?: string | null
+          fssai_number?: string | null
+          id?: string
+          location?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ngo_profiles: {
+        Row: {
+          beneficiary_count: number | null
+          contact_person: string | null
+          id: string
+          location: Json | null
+          registration_number: string | null
+        }
+        Insert: {
+          beneficiary_count?: number | null
+          contact_person?: string | null
+          id: string
+          location?: Json | null
+          registration_number?: string | null
+        }
+        Update: {
+          beneficiary_count?: number | null
+          contact_person?: string | null
+          id?: string
+          location?: Json | null
+          registration_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ngo_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          profile_complete: boolean | null
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id: string
+          name?: string | null
+          phone?: string | null
+          profile_complete?: boolean | null
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          profile_complete?: boolean | null
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      volunteer_profiles: {
+        Row: {
+          active_area: string | null
+          availability: Json | null
+          id: string
+          location: Json | null
+          training_completed: boolean | null
+        }
+        Insert: {
+          active_area?: string | null
+          availability?: Json | null
+          id: string
+          location?: Json | null
+          training_completed?: boolean | null
+        }
+        Update: {
+          active_area?: string | null
+          availability?: Json | null
+          id?: string
+          location?: Json | null
+          training_completed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volunteer_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
