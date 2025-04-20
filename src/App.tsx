@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +17,6 @@ import HotelDashboard from "./pages/hotel/Dashboard";
 import CreateListing from "./pages/hotel/CreateListing";
 import NotFound from "./pages/NotFound";
 
-// Creating missing pages
 import HotelListings from "./pages/hotel/Listings";
 import NGODashboard from "./pages/ngo/Dashboard";
 import NGOCollections from "./pages/ngo/Collections";
@@ -28,10 +26,10 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
 import Notifications from "./pages/Notifications";
+import AvailableForVolunteer from "./pages/volunteer/Available";
 
 const queryClient = new QueryClient();
 
-// Protected route component
 const ProtectedRoute = ({ children, allowedRoles = [] }: { children: JSX.Element, allowedRoles?: string[] }) => {
   const { user, loading } = useAuth();
   
@@ -58,14 +56,12 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            {/* Public routes - no need for Layout wrapper for auth pages */}
             <Route path="/" element={<Layout><Index /></Layout>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/food/:id" element={<Layout><FoodDetail /></Layout>} />
             <Route path="/food/available" element={<Layout><AvailableFood /></Layout>} />
             
-            {/* Protected routes */}
             <Route 
               path="/profile/setup" 
               element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} 
@@ -79,7 +75,6 @@ const App = () => (
               element={<ProtectedRoute><Layout><ProfileSetup /></Layout></ProtectedRoute>} 
             />
             
-            {/* Hotel routes */}
             <Route 
               path="/hotel/dashboard" 
               element={
@@ -105,7 +100,6 @@ const App = () => (
               } 
             />
             
-            {/* NGO routes */}
             <Route 
               path="/ngo/dashboard" 
               element={
@@ -123,7 +117,6 @@ const App = () => (
               } 
             />
             
-            {/* Volunteer routes */}
             <Route 
               path="/volunteer/dashboard" 
               element={
@@ -140,8 +133,15 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/volunteer/available" 
+              element={
+                <ProtectedRoute allowedRoles={['volunteer']}>
+                  <Layout><AvailableForVolunteer /></Layout>
+                </ProtectedRoute>
+              } 
+            />
             
-            {/* Admin routes */}
             <Route 
               path="/admin/dashboard" 
               element={
@@ -167,7 +167,6 @@ const App = () => (
               } 
             />
             
-            {/* 404 route */}
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
         </AuthProvider>

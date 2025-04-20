@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -37,7 +36,6 @@ const VolunteerSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulated data - in a real app this would come from the database
     const mockDeliveries: Delivery[] = [
       {
         id: '1',
@@ -54,7 +52,7 @@ const VolunteerSchedule: React.FC = () => {
           lng: 73.0170
         },
         status: 'scheduled',
-        scheduledDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+        scheduledDate: new Date(Date.now() + 86400000).toISOString(),
         distance: 2.3
       },
       {
@@ -72,7 +70,7 @@ const VolunteerSchedule: React.FC = () => {
           lng: 73.0140
         },
         status: 'scheduled',
-        scheduledDate: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
+        scheduledDate: new Date(Date.now() + 172800000).toISOString(),
         distance: 1.8
       },
       {
@@ -90,7 +88,7 @@ const VolunteerSchedule: React.FC = () => {
           lng: 73.0190
         },
         status: 'scheduled',
-        scheduledDate: new Date(Date.now() + 345600000).toISOString(), // 4 days later
+        scheduledDate: new Date(Date.now() + 345600000).toISOString(),
         distance: 3.2
       }
     ];

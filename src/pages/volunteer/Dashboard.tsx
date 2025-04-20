@@ -1,314 +1,239 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  MapPin,
-  Calendar,
-  Clock,
-  UserCheck,
-  TrendingUp,
-  Car
-} from 'lucide-react';
+import { Calendar, MapPin, Clock, CalendarDays, Clock3, Truck, Search } from 'lucide-react';
 
-interface Delivery {
-  id: string;
-  foodListingId: string;
-  foodName: string;
-  pickupLocation: {
-    name: string;
-    lat: number;
-    lng: number;
-  };
-  dropoffLocation: {
-    name: string;
-    lat: number;
-    lng: number;
-  };
-  status: 'scheduled' | 'in-progress' | 'completed';
-  scheduledDate: string;
-  distance?: number;
-}
-
-const VolunteerDashboard: React.FC = () => {
+const VolunteerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [stats, setStats] = useState({
-    totalDeliveries: 0,
-    totalDistance: 0,
-    deliveriesThisWeek: 0
-  });
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulated data - in a real app this would come from the database
-    const mockDeliveries: Delivery[] = [
-      {
-        id: '1',
-        foodListingId: 'food1',
-        foodName: 'Restaurant Surplus Meals',
-        pickupLocation: {
-          name: 'Grand Hotel, Koparkhairne',
-          lat: 19.1025,
-          lng: 73.0148
-        },
-        dropoffLocation: {
-          name: 'Community Center, Sector 5',
-          lat: 19.1050,
-          lng: 73.0170
-        },
-        status: 'scheduled',
-        scheduledDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-        distance: 2.3
-      },
-      {
-        id: '2',
-        foodListingId: 'food2',
-        foodName: 'Bakery Items',
-        pickupLocation: {
-          name: 'Fresh Bakery, Sector 8',
-          lat: 19.1060,
-          lng: 73.0130
-        },
-        dropoffLocation: {
-          name: 'New Hope NGO, Sector 3',
-          lat: 19.1010,
-          lng: 73.0140
-        },
-        status: 'scheduled',
-        scheduledDate: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
-        distance: 1.8
-      }
-    ];
-    
-    setDeliveries(mockDeliveries);
-    
-    setStats({
-      totalDeliveries: 14,
-      totalDistance: 35.6,
-      deliveriesThisWeek: 2
-    });
-    
-    setLoading(false);
-  }, []);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  // Generate greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
   };
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-2">Volunteer Dashboard</h1>
-      <p className="text-muted-foreground mb-8">
-        Welcome back, {user?.name || 'Volunteer'}. Manage your delivery schedule and track your impact.
-      </p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">{getGreeting()}, {user?.name || 'Volunteer'}</h1>
+        <p className="text-muted-foreground">
+          Welcome to your volunteer dashboard. Here's what needs your attention.
+        </p>
+      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Deliveries
-            </CardTitle>
+            <CardTitle>Find Food</CardTitle>
+            <CardDescription>Available food in your area</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDeliveries}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Helping communities in need
-            </p>
+          <CardContent className="pt-1">
+            <p className="text-4xl font-bold text-primary">3</p>
+            <p className="text-sm text-muted-foreground">Food listings available for pickup</p>
           </CardContent>
+          <CardFooter>
+            <Button className="w-full" onClick={() => navigate('/volunteer/available')}>
+              <Search className="mr-2 h-4 w-4" />
+              Browse Available Food
+            </Button>
+          </CardFooter>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Distance Covered
-            </CardTitle>
+            <CardTitle>Your Schedule</CardTitle>
+            <CardDescription>Upcoming food deliveries</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDistance} km</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total distance traveled
-            </p>
+          <CardContent className="pt-1">
+            <p className="text-4xl font-bold text-primary">2</p>
+            <p className="text-sm text-muted-foreground">Deliveries scheduled for today</p>
           </CardContent>
+          <CardFooter>
+            <Button className="w-full" onClick={() => navigate('/volunteer/schedule')}>
+              <Calendar className="mr-2 h-4 w-4" />
+              View Schedule
+            </Button>
+          </CardFooter>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              This Week
-            </CardTitle>
+            <CardTitle>Your Stats</CardTitle>
+            <CardDescription>Your contribution impact</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.deliveriesThisWeek}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Deliveries scheduled
-            </p>
+          <CardContent className="pt-1">
+            <p className="text-4xl font-bold text-primary">15</p>
+            <p className="text-sm text-muted-foreground">Total deliveries completed</p>
           </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full">
+              View Your Impact
+            </Button>
+          </CardFooter>
         </Card>
       </div>
 
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Upcoming Deliveries</h2>
-          <Button variant="outline" onClick={() => navigate('/volunteer/schedule')}>View Full Schedule</Button>
-        </div>
-        
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2].map(i => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-5 bg-muted rounded w-1/2 mb-2"></div>
-                  <div className="h-4 bg-muted rounded w-1/4"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-muted rounded w-1/2"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : deliveries.length === 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Upcoming Deliveries</h3>
-                <p className="text-muted-foreground mb-6">
-                  You don't have any scheduled deliveries at the moment.
-                </p>
-                <Button onClick={() => navigate('/volunteer/available')}>
-                  Find Available Deliveries
+            <CardHeader>
+              <CardTitle>Upcoming Deliveries</CardTitle>
+              <CardDescription>Your schedule for today</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between p-4 border rounded-md">
+                  <div className="space-y-1">
+                    <p className="font-medium">Restaurant Surplus Meals</p>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 mr-1" />
+                      <span>Grand Hotel, Koparkhairne</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5 mr-1" />
+                      <span>12:30 PM</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/volunteer/schedule')}>
+                    Details
+                  </Button>
+                </div>
+
+                <div className="flex items-start justify-between p-4 border rounded-md">
+                  <div className="space-y-1">
+                    <p className="font-medium">Bakery Items</p>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 mr-1" />
+                      <span>Fresh Bakery, Sector 8</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5 mr-1" />
+                      <span>4:00 PM</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/volunteer/schedule')}>
+                    Details
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4 text-center">
+                <Button variant="outline" onClick={() => navigate('/volunteer/schedule')}>
+                  View Full Schedule
                 </Button>
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-4">
-            {deliveries.map(delivery => (
-              <Card key={delivery.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{delivery.foodName}</CardTitle>
-                      <CardDescription>
-                        Scheduled for {formatDate(delivery.scheduledDate)}
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => navigate(`/volunteer/delivery/${delivery.id}`)}
-                    >
-                      Details
-                    </Button>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Your recent deliveries and actions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                    <Truck className="h-5 w-5 text-primary" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="flex items-center mb-2">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="font-medium">Pickup:</span>
-                        <span className="ml-2">{delivery.pickupLocation.name}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="font-medium">Dropoff:</span>
-                        <span className="ml-2">{delivery.dropoffLocation.name}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center mb-2">
-                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="font-medium">Time:</span>
-                        <span className="ml-2">
-                          {new Date(delivery.scheduledDate).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center">
-                        <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="font-medium">Distance:</span>
-                        <span className="ml-2">{delivery.distance} km</span>
-                      </div>
-                    </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Food delivered successfully</p>
+                    <p className="text-sm text-muted-foreground">
+                      You delivered food from Grand Hotel to Community Center
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Impact Summary</CardTitle>
-            <CardDescription>Your contribution to the community</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <UserCheck className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <span>People helped</span>
+                  <div className="text-sm text-muted-foreground">
+                    Yesterday
+                  </div>
                 </div>
-                <span className="font-medium">~280</span>
-              </div>
-              <div className="flex items-center justify-between">
+
                 <div className="flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <span>Food waste prevented</span>
+                  <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">New delivery assigned</p>
+                    <p className="text-sm text-muted-foreground">
+                      You were assigned a delivery from Fresh Bakery
+                    </p>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    2 days ago
+                  </div>
                 </div>
-                <span className="font-medium">70 kg</span>
-              </div>
-              <div className="flex items-center justify-between">
+
                 <div className="flex items-center">
-                  <Car className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <span>Total distance</span>
+                  <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                    <Clock3 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Schedule updated</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your delivery schedule was updated
+                    </p>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    3 days ago
+                  </div>
                 </div>
-                <span className="font-medium">{stats.totalDistance} km</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Manage your volunteer activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/volunteer/schedule')}>
-                <Calendar className="mr-2 h-4 w-4" />
-                View Full Schedule
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button className="w-full" onClick={() => navigate('/volunteer/available')}>
+                Find Available Food
               </Button>
-              <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/volunteer/available')}>
-                <MapPin className="mr-2 h-4 w-4" />
-                Find Available Deliveries
+              <Button variant="outline" className="w-full" onClick={() => navigate('/volunteer/schedule')}>
+                View Schedule
               </Button>
-              <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/volunteer/history')}>
-                <Clock className="mr-2 h-4 w-4" />
-                View Delivery History
+              <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
+                Update Profile
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <Button variant="outline" className="w-full" onClick={() => navigate('/notifications')}>
+                Check Notifications
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tips for Volunteers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">1</span>
+                  <span>Always confirm pickup times with the food provider</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">2</span>
+                  <span>Check food condition before accepting the delivery</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">3</span>
+                  <span>Use insulated bags for transporting hot food</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="bg-primary/10 text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs mr-2 mt-0.5">4</span>
+                  <span>Drive safely and follow traffic rules</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
