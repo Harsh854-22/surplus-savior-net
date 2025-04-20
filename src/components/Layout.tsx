@@ -14,7 +14,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // Don't show navbar on auth pages
   const hideNavbar = ['/login', '/register', '/profile/setup'].some(
-    path => location.pathname.startsWith(path)
+    path => location.pathname === path
   );
 
   return (
@@ -26,7 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
       
       <footer className="py-6 border-t border-border">
-        <div className="content-container">
+        <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row justify-between items-center">
             <p className="text-muted-foreground text-sm mb-2 sm:mb-0">
               &copy; {new Date().getFullYear()} Food Redistribution Platform - Koparkhairne

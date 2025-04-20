@@ -30,9 +30,9 @@ export const Navbar: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const getInitials = (name: string) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(part => part[0])
@@ -84,7 +84,7 @@ export const Navbar: React.FC = () => {
   
   return (
     <nav className="border-b border-border sticky top-0 z-40 w-full bg-background/80 backdrop-blur-sm">
-      <div className="content-container">
+      <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
@@ -144,7 +144,7 @@ export const Navbar: React.FC = () => {
                     <DropdownMenuLabel>
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium">{user.name || 'User'}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -192,7 +192,6 @@ export const Navbar: React.FC = () => {
                                 ? 'bg-primary/10 text-primary' 
                                 : 'text-muted-foreground hover:bg-accent'
                             }`}
-                            onClick={() => setMobileMenuOpen(false)}
                           >
                             {link.icon && <span className="mr-3">{link.icon}</span>}
                             {link.label}

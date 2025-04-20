@@ -35,6 +35,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      // Validate credentials against mock database
+      const mockUsers = [
+        { email: 'hotel@example.com', password: 'password123', role: 'hotel' },
+        { email: 'ngo@example.com', password: 'password123', role: 'ngo' },
+        { email: 'volunteer@example.com', password: 'password123', role: 'volunteer' },
+        { email: 'admin@example.com', password: 'password123', role: 'admin' },
+      ];
+
+      // Check if email and password match any mock user
+      const mockUser = mockUsers.find(u => u.email === email && u.password === password);
+      
+      if (!mockUser) {
+        throw new Error('Invalid email or password');
+      }
+
+      // If valid, proceed with sign in
       const user = await auth.signIn(email, password);
       setUser(user);
       toast({

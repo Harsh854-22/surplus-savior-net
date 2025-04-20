@@ -58,7 +58,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            {/* Public routes */}
+            {/* Public routes - no need for Layout wrapper for auth pages */}
             <Route path="/" element={<Layout><Index /></Layout>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
