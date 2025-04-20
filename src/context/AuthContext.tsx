@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('id', session.user.id)
             .single();
 
+          // Make sure we're creating a valid User object with all required properties
           setUser({
             id: session.user.id,
             email: session.user.email!,
@@ -42,7 +43,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             address: profile?.address || '',
             profileComplete: profile?.profile_complete || false,
             createdAt: session.user.created_at ? new Date(session.user.created_at).getTime() : Date.now(),
-            location: profile?.location || { lat: 0, lng: 0 } // Add the missing location property
+            // Create an empty location object if the profile doesn't have one
+            location: { 
+              lat: (profile && typeof profile.location === 'object' && profile.location ? profile.location.lat : 0) || 0,
+              lng: (profile && typeof profile.location === 'object' && profile.location ? profile.location.lng : 0) || 0
+            }
           });
         } else {
           setUser(null);
