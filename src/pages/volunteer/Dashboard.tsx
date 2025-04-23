@@ -1,14 +1,37 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Clock, CalendarDays, Clock3, Truck, Search } from 'lucide-react';
+import { TrainingStatus } from '@/components/volunteer/TrainingStatus';
+import { FoodCollection } from '@/types';
 
 const VolunteerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [collections, setCollections] = useState<FoodCollection[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      if (!user) return;
+      
+      try {
+        // In a real app, filter by volunteer ID
+        const volunteerCollections = await db.collections.getByUserId(user.id);
+        setCollections(volunteerCollections);
+      } catch (error) {
+        console.error('Error fetching collections:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCollections();
+  }, [user]);
 
   // Generate greeting based on time of day
   const getGreeting = () => {
@@ -16,6 +39,17 @@ const VolunteerDashboard = () => {
     if (hour < 12) return "Good Morning";
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
+  };
+
+  // Get today's collections
+  const getTodayCollections = () => {
+    const today = new Date().setHours(0, 0, 0, 0);
+    return collections.filter(collection => {
+      const collectionDate = typeof collection.pickupTime === 'string' 
+        ? new Date(collection.pickupTime).setHours(0, 0, 0, 0) 
+        : new Date(collection.pickupTime).setHours(0, 0, 0, 0);
+      return collectionDate === today;
+    });
   };
 
   return (
@@ -51,7 +85,7 @@ const VolunteerDashboard = () => {
             <CardDescription>Upcoming food deliveries</CardDescription>
           </CardHeader>
           <CardContent className="pt-1">
-            <p className="text-4xl font-bold text-primary">2</p>
+            <p className="text-4xl font-bold text-primary">{getTodayCollections().length}</p>
             <p className="text-sm text-muted-foreground">Deliveries scheduled for today</p>
           </CardContent>
           <CardFooter>
@@ -68,7 +102,7 @@ const VolunteerDashboard = () => {
             <CardDescription>Your contribution impact</CardDescription>
           </CardHeader>
           <CardContent className="pt-1">
-            <p className="text-4xl font-bold text-primary">15</p>
+            <p className="text-4xl font-bold text-primary">{collections.filter(c => c.status === 'completed').length}</p>
             <p className="text-sm text-muted-foreground">Total deliveries completed</p>
           </CardContent>
           <CardFooter>
@@ -87,41 +121,56 @@ const VolunteerDashboard = () => {
               <CardDescription>Your schedule for today</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start justify-between p-4 border rounded-md">
-                  <div className="space-y-1">
-                    <p className="font-medium">Restaurant Surplus Meals</p>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5 mr-1" />
-                      <span>Grand Hotel, Koparkhairne</span>
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2].map(i => (
+                    <div key={i} className="flex items-start justify-between p-4 border rounded-md animate-pulse">
+                      <div className="space-y-1">
+                        <div className="h-4 bg-muted rounded w-24 mb-2"></div>
+                        <div className="h-3 bg-muted rounded w-40"></div>
+                        <div className="h-3 bg-muted rounded w-24"></div>
+                      </div>
+                      <div className="h-8 bg-muted rounded w-20"></div>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5 mr-1" />
-                      <span>12:30 PM</span>
+                  ))}
+                </div>
+              ) : getTodayCollections().length > 0 ? (
+                <div className="space-y-4">
+                  {getTodayCollections().map(collection => (
+                    <div key={collection.id} className="flex items-start justify-between p-4 border rounded-md">
+                      <div className="space-y-1">
+                        <p className="font-medium">Food Collection #{collection.id.slice(0, 8)}</p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 mr-1" />
+                          <span>Pickup from Hotel ID: {collection.hotelId.slice(0, 8)}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 mr-1" />
+                          <span>
+                            {typeof collection.pickupTime === 'string'
+                              ? new Date(collection.pickupTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                              : new Date(collection.pickupTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </span>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => navigate('/volunteer/schedule')}>
+                        Details
+                      </Button>
                     </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/volunteer/schedule')}>
-                    Details
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                  <h4 className="text-lg font-medium mb-2">No Deliveries Today</h4>
+                  <p className="text-muted-foreground mb-4">
+                    You don't have any deliveries scheduled for today.
+                  </p>
+                  <Button variant="outline" onClick={() => navigate('/volunteer/available')}>
+                    Find Available Pickups
                   </Button>
                 </div>
-
-                <div className="flex items-start justify-between p-4 border rounded-md">
-                  <div className="space-y-1">
-                    <p className="font-medium">Bakery Items</p>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5 mr-1" />
-                      <span>Fresh Bakery, Sector 8</span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5 mr-1" />
-                      <span>4:00 PM</span>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/volunteer/schedule')}>
-                    Details
-                  </Button>
-                </div>
-              </div>
+              )}
 
               <div className="mt-4 text-center">
                 <Button variant="outline" onClick={() => navigate('/volunteer/schedule')}>
@@ -188,6 +237,9 @@ const VolunteerDashboard = () => {
         </div>
 
         <div className="space-y-6">
+          {/* Training component */}
+          <TrainingStatus />
+          
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>

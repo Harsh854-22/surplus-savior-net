@@ -21,16 +21,16 @@ export interface FoodListing {
   hotelId: string;
   hotelName: string;
   title: string;
-  foodName: string; // Added back for backward compatibility
+  foodName: string;
   description: string;
   quantity: number;
   servingSize: number;
-  quantityUnit: string; // Added back for backward compatibility
+  quantityUnit: string;
   expiry: string;
-  expiryTime: number; // Added back for backward compatibility
-  preparationTime?: number; // Added back for backward compatibility
-  fssaiNumber?: string; // Added back for backward compatibility
-  dietaryInfo?: { // Added back for backward compatibility
+  expiryTime: number;
+  preparationTime?: number;
+  fssaiNumber?: string;
+  dietaryInfo?: {
     isVegetarian: boolean;
     isVegan: boolean;
     containsNuts: boolean;
@@ -42,11 +42,11 @@ export interface FoodListing {
   location: {
     lat: number;
     lng: number;
-    address?: string; // Added back for backward compatibility
+    address?: string;
   };
   address: string;
   imageUrl?: string;
-  assignedTo?: { // Added back for backward compatibility
+  assignedTo?: {
     id: string;
     name: string;
     role: 'ngo' | 'volunteer';
@@ -59,12 +59,16 @@ export interface FoodCollection {
   hotelId: string;
   ngoId: string;
   volunteerId?: string;
-  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'canceled' | 'scheduled'; // Added 'scheduled'
-  pickupTime: string | number; // Allow both string and number
+  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'canceled' | 'scheduled';
+  pickupTime: string | number;
   completedTime?: string;
-  deliveryTime?: number; // Added back for backward compatibility
+  deliveryTime?: number;
   notes?: string;
-  createdAt?: number; // Added back as optional
+  createdAt?: number;
+  // Added for volunteer monitoring
+  volunteerFeedback?: string;
+  qualityRating?: number;
+  isOnTime?: boolean;
 }
 
 export interface Notification {
@@ -75,4 +79,24 @@ export interface Notification {
   read: boolean;
   createdAt: number;
   type: 'info' | 'success' | 'warning' | 'error';
+}
+
+export interface VolunteerTraining {
+  id: string;
+  volunteerId: string;
+  trainingName: string;
+  completed: boolean;
+  completedDate?: number;
+  expiryDate?: number;
+  status: 'not-started' | 'in-progress' | 'completed' | 'expired';
+  createdAt: number;
+}
+
+export interface VolunteerPerformance {
+  id: string;
+  volunteerId: string;
+  collectionsCompleted: number;
+  onTimeDeliveryRate: number;
+  averageRating: number;
+  lastUpdated: number;
 }

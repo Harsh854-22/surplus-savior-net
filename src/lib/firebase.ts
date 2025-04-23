@@ -1,8 +1,7 @@
-
 // This is a mock Firebase implementation
 // We'll need to install the actual Firebase dependencies and configure with real keys in Phase 2
 
-import { User, FoodListing, FoodCollection, Notification, UserRole } from '@/types';
+import { User, FoodListing, FoodCollection, Notification, UserRole, VolunteerTraining, VolunteerPerformance } from '@/types';
 
 // Mock authentication
 export const auth = {
@@ -136,6 +135,11 @@ export const db = {
   
   // Users
   users: {
+    getAll: async (): Promise<User[]> => {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      return mockUsers;
+    },
+    
     getById: async (id: string): Promise<User | null> => {
       await new Promise(resolve => setTimeout(resolve, 500));
       return mockUsers.find(user => user.id === id) || null;
@@ -222,6 +226,78 @@ export const db = {
       return newNotification;
     },
   },
+  
+  // Add volunteer training functionality
+  volunteerTraining: {
+    getAll: async (): Promise<VolunteerTraining[]> => {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      return mockVolunteerTrainings;
+    },
+    
+    getByVolunteerId: async (volunteerId: string): Promise<VolunteerTraining[]> => {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      return mockVolunteerTrainings.filter(training => training.volunteerId === volunteerId);
+    },
+    
+    update: async (id: string, updates: Partial<VolunteerTraining>): Promise<VolunteerTraining> => {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      const index = mockVolunteerTrainings.findIndex(training => training.id === id);
+      if (index === -1) throw new Error('Training not found');
+      
+      mockVolunteerTrainings[index] = { ...mockVolunteerTrainings[index], ...updates };
+      return mockVolunteerTrainings[index];
+    },
+    
+    create: async (training: Omit<VolunteerTraining, 'id' | 'createdAt'>): Promise<VolunteerTraining> => {
+      await new Promise(resolve => setTimeout(resolve, 700));
+      
+      const newTraining: VolunteerTraining = {
+        ...training,
+        id: `training-${Date.now()}`,
+        createdAt: Date.now(),
+      };
+      
+      mockVolunteerTrainings.push(newTraining);
+      return newTraining;
+    },
+  },
+  
+  // Add volunteer performance tracking
+  volunteerPerformance: {
+    getById: async (volunteerId: string): Promise<VolunteerPerformance | null> => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return mockVolunteerPerformances.find(performance => performance.volunteerId === volunteerId) || null;
+    },
+    
+    update: async (volunteerId: string, updates: Partial<VolunteerPerformance>): Promise<VolunteerPerformance> => {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      const index = mockVolunteerPerformances.findIndex(performance => performance.volunteerId === volunteerId);
+      if (index === -1) {
+        // Create new performance record if it doesn't exist
+        const newPerformance: VolunteerPerformance = {
+          id: `performance-${Date.now()}`,
+          volunteerId,
+          collectionsCompleted: updates.collectionsCompleted || 0,
+          onTimeDeliveryRate: updates.onTimeDeliveryRate || 100,
+          averageRating: updates.averageRating || 5,
+          lastUpdated: Date.now()
+        };
+        
+        mockVolunteerPerformances.push(newPerformance);
+        return newPerformance;
+      }
+      
+      mockVolunteerPerformances[index] = { 
+        ...mockVolunteerPerformances[index], 
+        ...updates,
+        lastUpdated: Date.now()
+      };
+      
+      return mockVolunteerPerformances[index];
+    },
+  }
 };
 
 // Mock data
@@ -270,18 +346,19 @@ const mockUsers: User[] = [
   },
 ];
 
+// Update the mock food listings to have the correct properties
 const mockFoodListings: FoodListing[] = [
   {
     id: 'listing1',
     hotelId: 'hotel1',
     hotelName: 'Grand Plaza Hotel',
-    title: 'Mixed Vegetable Curry', // Added title
+    title: 'Mixed Vegetable Curry',
     foodName: 'Mixed Vegetable Curry',
     description: 'Freshly prepared vegetable curry with rice and naan bread. Serves approximately 20 people.',
     quantity: 20,
-    servingSize: 20, // Added servingSize
+    servingSize: 20,
     quantityUnit: 'servings',
-    expiry: '2025-04-20T18:00:00Z', // Added expiry
+    expiry: '2025-04-20T18:00:00Z',
     preparationTime: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
     expiryTime: Date.now() + 5 * 60 * 60 * 1000, // 5 hours from now
     fssaiNumber: 'FSSAI-12345-67890',
@@ -289,7 +366,7 @@ const mockFoodListings: FoodListing[] = [
       isVegetarian: true,
       isVegan: false,
       containsNuts: false,
-      containsGluten: true,
+      containsGluten: false,
       containsDairy: true,
     },
     location: {
@@ -297,7 +374,7 @@ const mockFoodListings: FoodListing[] = [
       lat: 19.1036,
       lng: 73.0148,
     },
-    address: '123 Main Street, Koparkhairne, Navi Mumbai', // Added address as separate field
+    address: '123 Main Street, Koparkhairne, Navi Mumbai',
     status: 'available',
     createdAt: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago
   },
@@ -305,13 +382,13 @@ const mockFoodListings: FoodListing[] = [
     id: 'listing2',
     hotelId: 'hotel1',
     hotelName: 'Grand Plaza Hotel',
-    title: 'Chicken Biryani', // Added title
+    title: 'Chicken Biryani',
     foodName: 'Chicken Biryani',
     description: 'Aromatic rice dish with chicken. Approximately 15 servings available.',
     quantity: 15,
-    servingSize: 15, // Added servingSize
+    servingSize: 15,
     quantityUnit: 'servings',
-    expiry: '2025-04-20T17:00:00Z', // Added expiry
+    expiry: '2025-04-20T17:00:00Z',
     preparationTime: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago
     expiryTime: Date.now() + 4 * 60 * 60 * 1000, // 4 hours from now
     fssaiNumber: 'FSSAI-12345-67890',
@@ -327,7 +404,7 @@ const mockFoodListings: FoodListing[] = [
       lat: 19.1036,
       lng: 73.0148,
     },
-    address: '123 Main Street, Koparkhairne, Navi Mumbai', // Added address as separate field
+    address: '123 Main Street, Koparkhairne, Navi Mumbai',
     status: 'assigned',
     assignedTo: {
       id: 'ngo1',
@@ -349,6 +426,48 @@ const mockCollections: FoodCollection[] = [
     status: 'scheduled',
     createdAt: Date.now() - 30 * 60 * 1000, // 30 minutes ago
   },
+];
+
+// Add mock volunteer training data
+const mockVolunteerTrainings: VolunteerTraining[] = [
+  {
+    id: 'training1',
+    volunteerId: 'volunteer1',
+    trainingName: 'Food Safety Basics',
+    completed: true,
+    completedDate: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+    expiryDate: Date.now() + 180 * 24 * 60 * 60 * 1000, // valid for 6 months
+    status: 'completed',
+    createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
+  },
+  {
+    id: 'training2',
+    volunteerId: 'volunteer1',
+    trainingName: 'Safe Driving Course',
+    completed: false,
+    status: 'in-progress',
+    createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000, // 5 days ago
+  },
+  {
+    id: 'training3',
+    volunteerId: 'volunteer1',
+    trainingName: 'Food Storage Guidelines',
+    completed: false,
+    status: 'not-started',
+    createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2 days ago
+  }
+];
+
+// Add mock volunteer performance data
+const mockVolunteerPerformances: VolunteerPerformance[] = [
+  {
+    id: 'performance1',
+    volunteerId: 'volunteer1',
+    collectionsCompleted: 15,
+    onTimeDeliveryRate: 94,
+    averageRating: 4.7,
+    lastUpdated: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2 days ago
+  }
 ];
 
 const mockNotifications: Notification[] = [

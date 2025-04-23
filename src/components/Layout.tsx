@@ -17,6 +17,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     path => location.pathname === path
   );
 
+  // Check if we're on a page that might have its own navigation
+  const hasEmbeddedNavigation = false; // We've consolidated all navigation in the Navbar component
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {!hideNavbar && <Navbar />}
@@ -29,7 +32,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row justify-between items-center">
             <p className="text-muted-foreground text-sm mb-2 sm:mb-0">
-              &copy; {new Date().getFullYear()} Food Redistribution Platform - Koparkhairne
+              &copy; {new Date().getFullYear()} Surplus Savior - Fighting food waste in Koparkhairne
             </p>
             <div className="flex items-center space-x-4">
               <a href="#" className="text-muted-foreground text-sm hover:text-foreground transition-colors">

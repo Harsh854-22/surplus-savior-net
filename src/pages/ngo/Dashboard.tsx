@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { FoodListing } from '@/types';
-import { Calendar, MapPin, Clock, ShoppingBag, TrendingUp, Users, Package } from 'lucide-react';
+import { Calendar, MapPin, Clock, ShoppingBag, TrendingUp, Users, Package, Award } from 'lucide-react';
+import { VolunteerManagement } from '@/components/ngo/VolunteerManagement';
 
 const NGODashboard: React.FC = () => {
   const { user } = useAuth();
@@ -17,7 +18,8 @@ const NGODashboard: React.FC = () => {
     totalClaimed: 0,
     totalCompleted: 0,
     peopleHelped: 0,
-    foodSaved: 0
+    foodSaved: 0,
+    activeVolunteers: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -36,12 +38,17 @@ const NGODashboard: React.FC = () => {
           listing.status === 'collected' && listing.assignedTo?.id === user?.id
         );
         
+        // Get volunteer count
+        const allUsers = await db.users.getAll();
+        const volunteers = allUsers.filter(u => u.role === 'volunteer');
+        
         setStatistics({
           totalClaimed: claimed.length,
           totalCompleted: completed.length,
           // These would come from real data in a complete app
           peopleHelped: completed.length * 20, // Estimate 20 people per food donation
-          foodSaved: completed.reduce((total, listing) => total + (listing.quantity || 0), 0)
+          foodSaved: completed.reduce((total, listing) => total + (listing.quantity || 0), 0),
+          activeVolunteers: volunteers.length
         });
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -61,7 +68,7 @@ const NGODashboard: React.FC = () => {
       </p>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -129,13 +136,31 @@ const NGODashboard: React.FC = () => {
             <div className="h-1 bg-primary w-2/3"></div>
           </div>
         </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Volunteers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.activeVolunteers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Active volunteers
+            </p>
+          </CardContent>
+          <div className="h-1 bg-primary/10">
+            <div className="h-1 bg-primary w-1/2"></div>
+          </div>
+        </Card>
       </div>
 
       <Tabs defaultValue="active" className="mb-8">
-        <TabsList className="grid grid-cols-3 mb-4">
+        <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="active">Active Collections</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
         </TabsList>
         
         <TabsContent value="active">
@@ -231,6 +256,10 @@ const NGODashboard: React.FC = () => {
               View All Collections
             </Button>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="volunteers">
+          <VolunteerManagement />
         </TabsContent>
       </Tabs>
       
