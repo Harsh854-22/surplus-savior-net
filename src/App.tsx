@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,35 @@ import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/context/AuthContext";
 import { Layout } from "@/components/Layout";
 import { useEffect } from "react";
+
+// Import all pages
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ProfileSetup from "./pages/ProfileSetup";
+import FoodDetail from "./pages/FoodDetail";
+import AvailableFood from "./pages/AvailableFood";
+import Notifications from "./pages/Notifications";
+import NotFound from "./pages/NotFound";
+
+// Hotel pages
+import HotelDashboard from "./pages/hotel/Dashboard";
+import CreateListing from "./pages/hotel/CreateListing";
+import HotelListings from "./pages/hotel/Listings";
+
+// NGO pages
+import NGODashboard from "./pages/ngo/Dashboard";
+import NGOCollections from "./pages/ngo/Collections";
+
+// Volunteer pages
+import VolunteerDashboard from "./pages/volunteer/Dashboard";
+import VolunteerSchedule from "./pages/volunteer/Schedule";
+import AvailableForVolunteer from "./pages/volunteer/Available";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminUsers from "./pages/admin/Users";
+import AdminSettings from "./pages/admin/Settings";
 
 const queryClient = new QueryClient();
 
