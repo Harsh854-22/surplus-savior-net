@@ -13,12 +13,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   
   // Don't show navbar on auth pages
-  const hideNavbar = ['/login', '/register', '/profile/setup'].some(
-    path => location.pathname === path
-  );
-
-  // Check if we're on a page that might have its own navigation
-  const hasEmbeddedNavigation = false; // We've consolidated all navigation in the Navbar component
+  const hideNavbar = ['/login', '/register', '/profile/setup'].includes(location.pathname);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -35,13 +30,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               &copy; {new Date().getFullYear()} Surplus Savior - Fighting food waste in Koparkhairne
             </p>
             <div className="flex items-center space-x-4">
-              <a href="#" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
+              <a href="/privacy" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
                 Privacy
               </a>
-              <a href="#" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
+              <a href="/terms" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
                 Terms
               </a>
-              <a href="#" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
+              <a href="/contact" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>

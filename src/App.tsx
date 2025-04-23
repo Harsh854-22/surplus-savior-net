@@ -32,13 +32,25 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children, allowedRoles = [] }: { children: JSX.Element, allowedRoles?: string[] }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [user, loading, navigate, location]);
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+      </div>
+    );
   }
   
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return null;
   }
   
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {

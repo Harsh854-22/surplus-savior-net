@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +20,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Helper function to redirect based on user role
+  const redirectToDashboard = (userRole: User['role']) => {
+    switch (userRole) {
+      case 'hotel':
+        navigate('/hotel/dashboard');
+        break;
+      case 'ngo':
+        navigate('/ngo/dashboard');
+        break;
+      case 'volunteer':
+        navigate('/volunteer/dashboard');
+        break;
+      case 'admin':
+        navigate('/admin/dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -148,12 +167,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      toast({
-        title: "Sign in successful",
-        description: "Welcome back!",
-      });
-      
-      // Navigation will be handled by the auth state change listener
+      // Get the user profile to determine their role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (profile) {
+        toast({
+          title: "Sign in successful",
+          description: "Welcome back!",
+        });
+        redirectToDashboard(profile.role as User['role']);
+      }
     } catch (error: any) {
       toast({
         title: "Sign in failed",

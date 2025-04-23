@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 
 export const LoginForm: React.FC = () => {
@@ -12,18 +12,15 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!email || !password) return;
     
     setIsSubmitting(true);
-    
     try {
       await signIn(email, password);
-      // Navigation is handled in the Auth context
+      // Redirect is handled in AuthContext
     } catch (error) {
       console.error('Login error:', error);
     } finally {
@@ -31,33 +28,17 @@ export const LoginForm: React.FC = () => {
     }
   };
 
-  // For demo purposes, let's add quick login buttons
-  const loginAs = async (role: 'hotel' | 'ngo' | 'volunteer' | 'admin') => {
-    setIsSubmitting(true);
-    
-    try {
-      const email = `${role}@example.com`;
-      const password = 'password123';
-      
-      await signIn(email, password);
-    } catch (error) {
-      console.error('Quick login error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <div className="w-full max-w-md px-8 py-10 glassmorphism rounded-lg shadow-sm">
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your email and password to access your account
-          </p>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+        <CardDescription>
+          Enter your credentials to access your account
+        </CardDescription>
+      </CardHeader>
+      
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -71,17 +52,7 @@ export const LoginForm: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-xs"
-                onClick={() => navigate('/reset-password')}
-                type="button"
-              >
-                Forgot password?
-              </Button>
-            </div>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -91,70 +62,25 @@ export const LoginForm: React.FC = () => {
               required
             />
           </div>
-          
+        </CardContent>
+        
+        <CardFooter className="flex flex-col space-y-4">
           <Button 
             type="submit" 
             className="w-full" 
             disabled={isSubmitting}
           >
-            {isSubmitting ? (
-              <div className="flex items-center space-x-2">
-                <div className="loading-dot"></div>
-                <div className="loading-dot"></div>
-                <div className="loading-dot"></div>
-              </div>
-            ) : 'Sign In'}
+            {isSubmitting ? 'Signing in...' : 'Sign In'}
           </Button>
-        </form>
-        
-        <div className="text-center text-sm">
-          <span className="text-muted-foreground">Don't have an account? </span>
-          <Link to="/register" className="text-primary hover:underline">
-            Sign up
-          </Link>
-        </div>
-        
-        {/* Quick login section for demo purposes */}
-        <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center mb-3">
-            Demo Quick Access
+          
+          <p className="text-sm text-center text-muted-foreground">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-primary hover:underline">
+              Sign up
+            </Link>
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => loginAs('hotel')}
-              disabled={isSubmitting}
-            >
-              Login as Hotel
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => loginAs('ngo')}
-              disabled={isSubmitting}
-            >
-              Login as NGO
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => loginAs('volunteer')}
-              disabled={isSubmitting}
-            >
-              Login as Volunteer
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => loginAs('admin')}
-              disabled={isSubmitting}
-            >
-              Login as Admin
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </CardFooter>
+      </form>
+    </Card>
   );
 };
